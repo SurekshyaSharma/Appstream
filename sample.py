@@ -13,7 +13,8 @@ for obj in bucket.objects.all():
     key = obj.key
     body = obj.get()['Body'].read()
 # Open the text file------------S3file--------------------------------------
-# rading the file in S3
+#-------------------------------------------------------------------------------------------
+# reading the file in S3
 
 import boto3
  
