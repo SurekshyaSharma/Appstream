@@ -1,0 +1,46 @@
+bucket_name = "update-my-text-file"
+rekognition = boto3.client('rekognition')
+s3 = boto3.resource('s3')
+bucket = s3.Bucket(bucket_name)
+
+def handle_image(key):
+    response = rekognition.detect_labels(
+        Image={
+            'S3Object': {
+                'Bucket': bucket_name,
+                'Name': key
+            }
+        }
+    )
+    return response
+
+
+def lambda_handler(event, context):
+
+    file_name = 'results.txt'
+    object = s3.Object(bucket_name, 'tmp/results.txt')
+
+    cli = boto3.client('s3')
+    response = cli.get_object(Bucket=bucket_name, Key='tmp/results.txt')
+    data = response['Body'].read()
+    print('the data is ' + data)
+
+    key = urllib.unquote_plus(event['Records'][0]['s3']['object']['key'].encode('utf8'))
+    response = handle_image(key)
+    print('the response is: ' + response)
+
+    object.put(Body=data + '/n' + response)
+
+    # 
+    # -------------------------sample-------------------------
+    # {
+    #     {"createdAt Number": "1582842845914"},
+    #     {"department String": "ITS"},
+    #     {"email String":"vue0741@stthomas.edu"},
+    #     {"facultyname":"Vicky Vue"},
+    #     {"id String":"434341c8-59b1-11ea-97f1-ae9e17f20819"},
+    #     {"image String":"SPSS-AO"},
+    #     {"indexcode String":"40810"},
+    #     {"numberofinstances":"28"},
+    #     {"starttime":"2020-10-21T13:00"}
+    # },
