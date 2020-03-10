@@ -14,7 +14,7 @@ def lambda_handler(event, context):
 
     dynamodb = boto3.resource('dynamodb')
 
-    table = dynamodb.Table('serverlessrepo-serverless-form-handler-FormDataTable-1UNKJ1074YHCK')
+    table = dynamodb.Table('AppStreamDynamoDB1')
 
 
     response = table.scan(
@@ -22,27 +22,54 @@ def lambda_handler(event, context):
     )
     items = response['Items']
     print(items)  # it should print out the values
+    print("testing")
     print(yesterday_date_string)
 
     if len(items) != 0:
         print(items)  # it should print null
     return items
 
+  
     saving_backup()
     delete_entires()
 
 def saving_backup():
-    s3 = boto3.resource('s3')
-    s3.Object('mybucket', 'Items_Copy.txt').put(Body=open('/tmp/Iems_Copy.txt', 'rb'))
-    #   data = s3.get_object(Bucket='my_s3_bucket', Key='main.txt')
-    # contents = data['Body'].read()
-    # print(contents)
-    # ---------------------Reading and -Writing the file in S3 bucket-------------------------------------
-    with open('Items_Copy.txt', 'w') as f:
-        csv.writer(f, delimiter=' ').writerows(items)
+    s3_client = boto3.client('s3')
+    key = datetime.now(pytz.timezone('US/Central')).strftime("%Y-%m-%dT")
+    bucket = 'REPLACE_WITH_BUCKET_NAME'
+    data = []
+    serializedData = json.dumps(data)
+    try:
+        # response = s3_client.upload_file(file_name, bucket, object_name)
+        response = s3.put_object(Bucket=bucket, Key=key, Body=serializedData)
+    except ClientError as e:
+        logging.error(e)
+        return False
+    return True
 
 
 def delete_entires():
     saving_backup() == True
     #----------------------Delete Items inside the dynamo db---------------------------------------------
-    del items[:]
+
+    print("Attempting a conditional delete...")
+
+    try:
+        response = table.delete_item(
+            Key={
+                'date': yesterday_date_string ,
+                
+            },
+            # ConditionExpression="info.rating <= :val",
+            # ExpressionAttributeValues= {
+            #     ":val": decimal.Decimal(5)
+            # }
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == "ConditionalCheckFailedException":
+            print(e.response['Error']['Message'])
+        else:
+            raise
+    else:
+        print("DeleteItem succeeded:")
+        # print(json.dumps(response, indent=4, cls=DecimalEncoder))
